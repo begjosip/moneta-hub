@@ -25,5 +25,4 @@ public abstract class AuditableEntity {
 
     @LastModifiedDate
     private LocalDateTime lastModifiedAt;
-
 }

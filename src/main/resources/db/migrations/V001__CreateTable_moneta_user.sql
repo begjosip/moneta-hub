@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS moneta_user
     id               BIGSERIAL PRIMARY KEY,
     first_name       TEXT                                NOT NULL,
     last_name        TEXT                                NOT NULL,
-    email            TEXT                                NOT NULL,
+    username         TEXT                                NOT NULL,
     password         TEXT                                NOT NULL,
     status           TEXT                                NOT NULL,
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -13,4 +13,4 @@ CREATE TABLE IF NOT EXISTS moneta_user
 );
 
 ALTER TABLE moneta_user
-    ADD CONSTRAINT uc_moneta_user__email UNIQUE (email);
+    ADD CONSTRAINT uc_moneta_user__username UNIQUE (username);
