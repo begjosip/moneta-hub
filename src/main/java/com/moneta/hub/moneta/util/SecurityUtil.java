@@ -31,8 +31,15 @@ public class SecurityUtil {
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
+    public static String decryptUsername(@NotBlank String encryptedUsername)
+            throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+        Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
+        cipher.init(Cipher.DECRYPT_MODE, generateKey());
+        byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedUsername));
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
+    }
+
     private static SecretKey generateKey() {
         return new SecretKeySpec(SECRET_KEY.getBytes(), KEY_ALGORITHM);
     }
-
 }

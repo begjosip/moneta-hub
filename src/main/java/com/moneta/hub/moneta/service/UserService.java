@@ -10,6 +10,7 @@ import com.moneta.hub.moneta.repository.MonetaUserRepository;
 import com.moneta.hub.moneta.repository.RoleRepository;
 import com.moneta.hub.moneta.repository.VerificationRepository;
 import com.moneta.hub.moneta.util.SecurityUtil;
+import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -38,6 +40,8 @@ public class UserService {
 
     private final VerificationRepository verificationRepository;
 
+    private final EmailService emailService;
+
     private final PasswordEncoder encoder;
 
     private static final Long VERIFICATION_EXPIRATION_DAYS = 5L;
@@ -49,7 +53,8 @@ public class UserService {
 
     @Transactional
     public MonetaUser registerUser(UserRequest userRequest)
-            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException,
+                   MessagingException, UnsupportedEncodingException {
 
         log.debug("Registration user from request.");
         this.validateUserRegistrationRequest(userRequest);
@@ -73,7 +78,7 @@ public class UserService {
 
         log.debug("Saving verification for user {}", monetaUser.getUsername());
         verificationRepository.save(verification);
-
+        emailService.sendVerificationEmail(verification);
         log.debug("Successfully created new user with ID:{}", monetaUser.getId());
         return monetaUser;
     }
@@ -91,28 +96,33 @@ public class UserService {
     }
 
     @Transactional
-    public void verifyUserWithToken(String token) {
+    public String verifyUserWithToken(String token) {
         log.debug("Verifying user with token {}", token);
-        if (token.length() != 36) {
-            throw new IllegalArgumentException("Invalid validation token length.");
-        }
-        Verification verification = verificationRepository.findByTokenAndStatus(token, VerificationStatus.PENDING).orElseThrow(
-                () -> new IllegalArgumentException("Invalid or expired token."));
-        if (verification.getCreatedAt().isBefore(LocalDateTime.now().minusDays(VERIFICATION_EXPIRATION_DAYS))) {
-            log.debug("Verification expired.");
-            verification.setStatus(VerificationStatus.EXPIRED);
+        try {
+            if (token.length() != 36) {
+                throw new IllegalArgumentException("Invalid validation token length.");
+            }
+            Verification verification = verificationRepository.findByTokenAndStatus(token, VerificationStatus.PENDING).orElseThrow(
+                    () -> new IllegalArgumentException("Invalid or expired token."));
+            if (verification.getCreatedAt().isBefore(LocalDateTime.now().minusDays(VERIFICATION_EXPIRATION_DAYS))) {
+                log.debug("Verification expired.");
+                verification.setStatus(VerificationStatus.EXPIRED);
+                MonetaUser user = verification.getUser();
+                invalidateUser(user);
+                verificationRepository.save(verification);
+                throw new IllegalArgumentException("Verification token expired. Register again.");
+            }
             MonetaUser user = verification.getUser();
-            invalidateUser(user);
+            user.setStatus(UserStatus.ACTIVE);
+            verification.setStatus(VerificationStatus.VERIFIED);
+            userRepository.save(user);
             verificationRepository.save(verification);
-            throw new IllegalArgumentException("Verification token expired. Register again.");
-        }
-        MonetaUser user = verification.getUser();
-        user.setStatus(UserStatus.ACTIVE);
-        verification.setStatus(VerificationStatus.VERIFIED);
-        userRepository.save(user);
-        verificationRepository.save(verification);
 
-        log.debug("Successfully validated user with ID: ");
+            log.debug("Successfully validated user with ID: ");
+            return EmailService.VERIFICATION_SUCCESS_HTML;
+        } catch (Exception ex) {
+            return EmailService.VERIFICATION_UNSUCCESSFUL_HTML;
+        }
     }
 
     private void invalidateUser(MonetaUser user) {

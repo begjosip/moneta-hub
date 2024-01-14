@@ -7,6 +7,7 @@ import com.moneta.hub.moneta.model.message.response.UserResponse;
 import com.moneta.hub.moneta.security.JwtGenerator;
 import com.moneta.hub.moneta.service.UserService;
 import com.moneta.hub.moneta.util.SecurityUtil;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
@@ -61,7 +63,8 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<Object> register(@Validated(UserRequestValidator.Register.class) @RequestBody UserRequest userRequest)
-            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException,
+                   MessagingException, UnsupportedEncodingException {
 
         log.info(" > > > POST /api/v1/auth/login");
 
@@ -80,9 +83,9 @@ public class AuthController {
     public ResponseEntity<Object> verifyUser(@PathVariable String token) {
 
         log.info(" > > > POST /api/v1/auth/verify/{}", token);
-        userService.verifyUserWithToken(token);
+        String htmlContent = userService.verifyUserWithToken(token);
         log.info(" < < < POST /api/v1/auth/verify/{}", token);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(htmlContent);
     }
 }
