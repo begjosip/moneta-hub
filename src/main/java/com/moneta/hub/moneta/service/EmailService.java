@@ -38,9 +38,10 @@ public class EmailService {
     private final SpringTemplateEngine springTemplateEngine;
 
     private static final String VERIFICATION_TEMPLATE = "verification";
-
+    private static final String PASSWORD_RESET_REQUEST_TEMPLATE = "password_reset_request";
     private static final String FIRSTNAME = "firstName";
     private static final String VERIFICATION_VARIABLE = "verificationUrl";
+    private static final String PASSWORD_RESET_URL = "passwordResetUrl";
 
     public static final String VERIFICATION_SUCCESS_HTML = """
             <!DOCTYPE html>
@@ -107,5 +108,31 @@ public class EmailService {
         javaMailSender.send(message);
 
         log.debug("Sent verification email to user with ID:{}", verification.getUser().getId());
+    }
+
+    public void sendPasswordChangeRequestEmail(Verification verification)
+            throws MessagingException, UnsupportedEncodingException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+        log.debug("Sending password reset email to user with ID:{}", verification.getUser().getId());
+        MimeMessage message = javaMailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message,
+                                                         MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                                                         StandardCharsets.UTF_8.name());
+
+        log.debug("Setting context for password change email");
+        String userEmail = SecurityUtil.decryptUsername(verification.getUser().getUsername());
+        String passwordReset = emailProperties.getPasswordResetUrl() + verification.getToken();
+        Context context = new Context(LocaleContextHolder.getLocale());
+        context.setVariable(FIRSTNAME, verification.getUser().getFirstName());
+        context.setVariable(PASSWORD_RESET_URL, passwordReset);
+
+        String html = springTemplateEngine.process(PASSWORD_RESET_REQUEST_TEMPLATE, context);
+        helper.setSubject("Reset Moneta account password");
+        helper.setTo(userEmail);
+        helper.setText(html, true);
+        helper.setSentDate(new Date());
+        helper.setFrom(new InternetAddress(emailProperties.getMonetaMail(), MONETA_STOCKS));
+        javaMailSender.send(message);
+
+        log.debug("Sent password reset request email to user with ID:{}", verification.getUser().getId());
     }
 }

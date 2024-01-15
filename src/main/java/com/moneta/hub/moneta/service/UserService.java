@@ -132,4 +132,43 @@ public class UserService {
         userRepository.save(user);
         log.debug("User with ID: {} invalidated.", user.getId());
     }
+
+    @Transactional
+    public void requestPasswordResetForUser(String username)
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException,
+                   MessagingException, UnsupportedEncodingException {
+        log.debug("Requested password change for user.");
+
+        MonetaUser user = findUserByUsername(SecurityUtil.encryptUsername(username));
+        if ((long) verificationRepository.findAllByUserIdAndStatus(user.getId(), VerificationStatus.PENDING)
+                                         .size() > 5L) {
+            throw new IllegalArgumentException("You already have too many unused password requests. Contact our team.");
+        }
+        Verification verification = verificationRepository.save(Verification.builder()
+                                                                            .token(UUID.randomUUID().toString())
+                                                                            .status(VerificationStatus.PENDING)
+                                                                            .user(user)
+                                                                            .build());
+        log.debug("Saved verification with ID: {}", verification.getId());
+        emailService.sendPasswordChangeRequestEmail(verification);
+    }
+
+    public void changeForgottenPassword(UserRequest request) {
+        log.debug("Change user forgotten password.");
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Password are not matching.");
+        }
+        Verification verification = verificationRepository.findByTokenAndStatus(request.getToken(), VerificationStatus.PENDING)
+                                                          .orElseThrow(() -> new IllegalArgumentException("Invalid verification token."));
+
+        if (verification.getCreatedAt().isBefore(LocalDateTime.now().minusDays(2L))) {
+            verification.setStatus(VerificationStatus.EXPIRED);
+            verificationRepository.save(verification);
+            throw new IllegalArgumentException("Reset request has been sent before two days. Request password reset again.");
+        }
+        MonetaUser user = verification.getUser();
+        user.setPassword(encoder.encode(request.getPassword()));
+        userRepository.save(user);
+        log.debug("Saved new password for user with ID:{}", user.getId());
+    }
 }

@@ -88,4 +88,23 @@ public class AuthController {
 
         return ResponseEntity.ok(htmlContent);
     }
+
+    @PostMapping("/reset/request")
+    public ResponseEntity<Object> requestPasswordReset(@Validated(UserRequestValidator.PasswordReset.class) @RequestBody UserRequest request)
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, MessagingException, UnsupportedEncodingException {
+        log.info(" > > > POST /api/v1/auth/reset/request");
+        userService.requestPasswordResetForUser(request.getUsername());
+        log.info(" < < < POST /api/v1/auth/reset/request");
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset/forgotten")
+    public ResponseEntity<Object> resetPasswordWithToken(@Validated(UserRequestValidator.NewPassword.class) @RequestBody UserRequest request) {
+        log.info(" > > > POST /api/v1/auth/reset/forgotten");
+
+        userService.changeForgottenPassword(request);
+
+        log.info(" < < < POST /api/v1/auth/verify/forgotten");
+        return ResponseEntity.ok().build();
+    }
 }

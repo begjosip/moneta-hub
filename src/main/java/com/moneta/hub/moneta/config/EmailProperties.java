@@ -28,4 +28,7 @@ public class EmailProperties {
 
     @Value("${user.verification.token.url}")
     private String verificationUrl;
+
+    @Value("${user.password.reset.url}")
+    private String passwordResetUrl;
 }

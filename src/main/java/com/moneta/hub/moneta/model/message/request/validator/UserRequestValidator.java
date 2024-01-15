@@ -11,4 +11,12 @@ public interface UserRequestValidator {
     interface Register extends Default {
 
     }
+
+    interface PasswordReset extends Default {
+
+    }
+
+    interface NewPassword extends Default {
+
+    }
 }
