@@ -45,7 +45,7 @@ public class CustomExceptionHandler {
         Map<String, Object> errors = new HashMap<>();
         errors.put("timestamp", LocalDateTime.now());
         errors.put("status", HttpStatus.BAD_REQUEST);
-        errors.put("error: ", ex.getMessage());
+        errors.put("error", ex.getMessage());
         return errors;
     }
 
@@ -56,7 +56,7 @@ public class CustomExceptionHandler {
         Map<String, Object> errors = new HashMap<>();
         errors.put("timestamp", LocalDateTime.now());
         errors.put("status", HttpStatus.INTERNAL_SERVER_ERROR);
-        errors.put("error: ", ex.getMessage());
+        errors.put("error", ex.getMessage());
         return errors;
     }
 
@@ -67,7 +67,7 @@ public class CustomExceptionHandler {
         Map<String, Object> errors = new HashMap<>();
         errors.put("timestamp", LocalDateTime.now());
         errors.put("status", HttpStatus.NOT_FOUND);
-        errors.put("error: ", ex.getMessage());
+        errors.put("error", ex.getMessage());
         return errors;
     }
 
@@ -78,7 +78,7 @@ public class CustomExceptionHandler {
         Map<String, Object> errors = new HashMap<>();
         errors.put("timestamp", LocalDateTime.now());
         errors.put("status", HttpStatus.UNAUTHORIZED);
-        errors.put("error: ", ex.getMessage());
+        errors.put("error", ex.getMessage());
         return errors;
     }
 
@@ -89,7 +89,7 @@ public class CustomExceptionHandler {
         Map<String, Object> errors = new HashMap<>();
         errors.put("timestamp", LocalDateTime.now());
         errors.put("status", HttpStatus.INTERNAL_SERVER_ERROR);
-        errors.put("error: ", "Email service error.");
+        errors.put("error", "Email service error.");
         return errors;
     }
 
@@ -100,7 +100,7 @@ public class CustomExceptionHandler {
         Map<String, Object> errors = new HashMap<>();
         errors.put("timestamp", LocalDateTime.now());
         errors.put("status", HttpStatus.METHOD_NOT_ALLOWED);
-        errors.put("error: ", ex.getMessage());
+        errors.put("error", ex.getMessage());
         return errors;
     }
 
@@ -111,7 +111,7 @@ public class CustomExceptionHandler {
         Map<String, Object> errors = new HashMap<>();
         errors.put("timestamp", LocalDateTime.now());
         errors.put("status", HttpStatus.INTERNAL_SERVER_ERROR);
-        errors.put("error: ", ex.getMessage());
+        errors.put("error", ex.getMessage());
         return errors;
     }
 
