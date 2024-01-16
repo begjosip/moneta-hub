@@ -140,7 +140,7 @@ public class UserService {
         log.debug("Requested password change for user.");
 
         MonetaUser user = findUserByUsername(SecurityUtil.encryptUsername(username));
-        if ((long) verificationRepository.findAllByUserIdAndStatus(user.getId(), VerificationStatus.PENDING)
+        if (verificationRepository.findAllByUserIdAndStatus(user.getId(), VerificationStatus.PENDING)
                                          .size() > 5L) {
             throw new IllegalArgumentException("You already have too many unused password requests. Contact our team.");
         }

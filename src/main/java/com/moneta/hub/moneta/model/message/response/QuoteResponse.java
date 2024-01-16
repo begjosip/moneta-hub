@@ -21,6 +21,12 @@ public class QuoteResponse {
     @JsonProperty("l")
     private Double lowPrice;
 
+    @JsonProperty("d")
+    private Double change;
+
+    @JsonProperty("dp")
+    private Double percentChange;
+
     @JsonProperty("o")
     private Double openingPrice;
 

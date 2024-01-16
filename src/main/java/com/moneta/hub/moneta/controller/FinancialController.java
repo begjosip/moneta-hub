@@ -1,6 +1,7 @@
 package com.moneta.hub.moneta.controller;
 
 import com.moneta.hub.moneta.model.message.response.CompanyProfileResponse;
+import com.moneta.hub.moneta.model.message.response.MarketStatus;
 import com.moneta.hub.moneta.model.message.response.NewsResponse;
 import com.moneta.hub.moneta.model.message.response.QuoteResponse;
 import com.moneta.hub.moneta.service.FinanceService;
@@ -22,12 +23,22 @@ public class FinancialController {
 
     private final FinanceService financeService;
 
-    @GetMapping("/all/news")
+    @GetMapping("/market/status")
+    public ResponseEntity<Object> getUsMarketStatus() {
+
+        log.info(" > > > GET /api/v1/finance/market/status");
+        MarketStatus response = financeService.fetchMarketStatus();
+        log.info(" < < < GET /api/v1/finance/market/status");
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/market/news")
     public ResponseEntity<Object> getStockMarketNews() {
 
-        log.info(" > > > GET /api/v1/finance/all/news");
+        log.info(" > > > GET /api/v1/finance/market/news");
         List<NewsResponse> response = financeService.fetchStockMarketNews();
-        log.info(" < < < GET /api/v1/finance/all/news");
+        log.info(" < < < GET /api/v1/finance/market/news");
 
         return ResponseEntity.ok(response);
     }

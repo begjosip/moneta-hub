@@ -3,6 +3,7 @@ package com.moneta.hub.moneta.service;
 import com.moneta.hub.moneta.config.FinanceProperties;
 import com.moneta.hub.moneta.model.entity.BlueChip;
 import com.moneta.hub.moneta.model.message.response.CompanyProfileResponse;
+import com.moneta.hub.moneta.model.message.response.MarketStatus;
 import com.moneta.hub.moneta.model.message.response.NewsResponse;
 import com.moneta.hub.moneta.model.message.response.QuoteResponse;
 import com.moneta.hub.moneta.repository.BlueChipRepository;
@@ -34,6 +35,7 @@ public class FinanceService {
     private static final String NEWS_FETCH_URI = "/news?category=general";
     private static final String COMPANY_PROFILE_URI = "/stock/profile2?symbol=";
     private static final String QUOTE_URI = "/quote?symbol=";
+    private static final String MARKET_STATUS_URI = "/stock/market-status?exchange=US";
     private static final String FINNHUB_TOKEN_HEADER_KEY = "X-Finnhub-Token";
 
     public List<NewsResponse> fetchStockMarketNews() {
@@ -122,5 +124,31 @@ public class FinanceService {
         });
         log.debug("Fetching company profile quotes data success GET > > > {}", uri);
         return quoteResponses;
+    }
+
+    public MarketStatus fetchMarketStatus() {
+        String uri = financeProperties.getFinnhubUrl().concat(MARKET_STATUS_URI);
+        log.debug("Fetching market status data GET > > > {}", uri);
+
+        WebClient webClient = WebClient.builder()
+                                       .clientConnector(new ReactorClientHttpConnector(HttpClient.create()
+                                                                                                 .responseTimeout(
+                                                                                                         Duration.ofSeconds(TIMEOUT))))
+                                       .build();
+
+        return webClient.get()
+                        .uri(uri)
+                        .header(FINNHUB_TOKEN_HEADER_KEY, financeProperties.getFinnhubApiKey())
+                        .retrieve()
+                        .onStatus(status -> status.value() == HttpStatus.TOO_MANY_REQUESTS.value(),
+                                  response -> Mono.error(new IllegalArgumentException(
+                                          "Too many API requests. Try again later of improve " +
+                                          "your subscription" +
+                                          " plan.")))
+                        .onStatus(status -> !status.is2xxSuccessful(),
+                                  response -> Mono.error(new IllegalArgumentException(
+                                          "Error occurred while trying to fetch company data.")))
+                        .bodyToMono(MarketStatus.class)
+                        .block();
     }
 }
