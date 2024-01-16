@@ -2,6 +2,7 @@ package com.moneta.hub.moneta.exception;
 
 import jakarta.mail.MessagingException;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -83,7 +84,7 @@ public class CustomExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    @ExceptionHandler({MailException.class, MessagingException.class})
+    @ExceptionHandler({MailException.class, MessagingException.class, MailAuthenticationException.class})
     public Map<String, Object> emailErrorHandler(
             Exception ex) {
         Map<String, Object> errors = new HashMap<>();

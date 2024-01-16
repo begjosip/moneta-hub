@@ -2,6 +2,7 @@ package com.moneta.hub.moneta.controller;
 
 import com.moneta.hub.moneta.model.message.response.CompanyProfileResponse;
 import com.moneta.hub.moneta.model.message.response.NewsResponse;
+import com.moneta.hub.moneta.model.message.response.QuoteResponse;
 import com.moneta.hub.moneta.service.FinanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +25,9 @@ public class FinancialController {
     @GetMapping("/all/news")
     public ResponseEntity<Object> getStockMarketNews() {
 
-        log.debug(" > > > GET /api/v1/finance/all/news");
+        log.info(" > > > GET /api/v1/finance/all/news");
         List<NewsResponse> response = financeService.fetchStockMarketNews();
-        log.debug(" < < < GET /api/v1/finance/all/news");
+        log.info(" < < < GET /api/v1/finance/all/news");
 
         return ResponseEntity.ok(response);
     }
@@ -34,9 +35,19 @@ public class FinancialController {
     @GetMapping("/company/profile/{ticker}")
     public ResponseEntity<Object> getCompanyProfile(@PathVariable String ticker) {
 
-        log.debug(" > > > GET /api/v1/finance/company/profile/{}", ticker);
+        log.info(" > > > GET /api/v1/finance/company/profile/{}", ticker);
         CompanyProfileResponse response = financeService.fetchCompanyProfile(ticker);
-        log.debug(" < < < GET /api/v1/finance/company/profile/{}", ticker);
+        log.info(" < < < GET /api/v1/finance/company/profile/{}", ticker);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/blue/chips")
+    public ResponseEntity<Object> getBlueChipStocks() {
+
+        log.info(" > > > GET /api/v1/finance/blue/chips");
+        List<QuoteResponse> response = financeService.fetchBlueChipStocks();
+        log.info(" < < < GET /api/v1/finance/blue/chips");
 
         return ResponseEntity.ok(response);
     }
