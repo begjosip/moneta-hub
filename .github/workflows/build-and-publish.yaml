@@ -21,6 +21,7 @@ jobs:
           java-version: 17
 
       - name: Build
+        run: ./gradlew build
         env:
           MONETA_DB_URL: ${{ secrets.MONETA_DB_URL }}
           MONETA_DB_USER: ${{ secrets.MONETA_DB_USER }}
@@ -29,8 +30,6 @@ jobs:
           POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           EXCHANGE_API_KEY: ${{ secrets.EXCHANGE_API_KEY }}
-
-        run: ./gradlew build
 
       - name: Copy Jar file
         run: mv build/libs/moneta-0.0.1.jar moneta-0.0.1.jar
