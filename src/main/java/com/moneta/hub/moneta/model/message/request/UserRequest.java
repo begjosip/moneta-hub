@@ -3,6 +3,7 @@ package com.moneta.hub.moneta.model.message.request;
 import com.moneta.hub.moneta.model.message.request.validator.UserRequestValidator;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
@@ -10,6 +11,7 @@ import lombok.Data;
 @Data
 public class UserRequest {
 
+    @NotNull(groups = {UserRequestValidator.PasswordChange.class})
     @Null(groups = {UserRequestValidator.Login.class, UserRequestValidator.Register.class})
     private Long id;
 
@@ -25,18 +27,25 @@ public class UserRequest {
     @Email(groups = {UserRequestValidator.Login.class, UserRequestValidator.Register.class, UserRequestValidator.PasswordReset.class})
     private String username;
 
+    @NotBlank(groups = {UserRequestValidator.PasswordChange.class})
+    private String oldPassword;
+
     /**
      * Password needs to be at least 8 characters long and contain letters and digits
      */
-    @NotBlank(groups = {UserRequestValidator.Login.class, UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class})
+    @NotBlank(groups = {UserRequestValidator.Login.class, UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class,
+                        UserRequestValidator.PasswordChange.class})
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*[0-9]).{8,}$",
-             groups = {UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class})
+             groups = {UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class,
+                       UserRequestValidator.PasswordChange.class})
     private String password;
 
     @Null(groups = {UserRequestValidator.Login.class})
-    @NotBlank(groups = {UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class})
+    @NotBlank(groups = {UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class,
+                        UserRequestValidator.PasswordChange.class})
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*[0-9]).{8,}$",
-             groups = {UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class})
+             groups = {UserRequestValidator.Register.class, UserRequestValidator.NewPassword.class,
+                       UserRequestValidator.PasswordChange.class})
     private String confirmPassword;
 
     @NotBlank(groups = {UserRequestValidator.NewPassword.class})

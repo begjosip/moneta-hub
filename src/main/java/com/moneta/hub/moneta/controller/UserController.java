@@ -1,5 +1,7 @@
 package com.moneta.hub.moneta.controller;
 
+import com.moneta.hub.moneta.model.message.request.UserRequest;
+import com.moneta.hub.moneta.model.message.request.validator.UserRequestValidator;
 import com.moneta.hub.moneta.model.message.response.UserResponse;
 import com.moneta.hub.moneta.service.UserService;
 import com.moneta.hub.moneta.util.SecurityUtil;
@@ -10,11 +12,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -54,7 +59,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<Object> deleteUserAccountWithId(@NonNull HttpServletRequest httpServletRequest,
-                                                    @PathVariable Long id) throws IOException {
+                                                          @PathVariable Long id) throws IOException {
 
         log.info(" > > > DELETE /api/v1/user/{}", id);
         userService.validateTokenAndUserId(SecurityUtil.getBearerTokenFromHttpRequest(httpServletRequest), id);
@@ -62,6 +67,20 @@ public class UserController {
         log.info(" < < < DELETE /api/v1/user/{}", id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/password")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    public ResponseEntity<Object> changeUserPassword(@NonNull HttpServletRequest httpServletRequest,
+                                                     @Validated(UserRequestValidator.PasswordChange.class)
+                                                     @RequestBody UserRequest userRequest) {
+
+        log.info(" > > > PUT /api/v1/user/password");
+        userService.validateTokenAndUserId(SecurityUtil.getBearerTokenFromHttpRequest(httpServletRequest), userRequest.getId());
+        userService.changeUserPassword(userRequest);
+        log.info(" < < < PUT /api/v1/user/password");
+
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping(value = "/image")

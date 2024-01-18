@@ -281,7 +281,7 @@ public class UserService {
         log.debug("Deleting profile image for user with ID: {}", id);
         MonetaUser user = userRepository.findById(id).orElseThrow(
                 () -> new IllegalArgumentException("Cannot find user with ID " + id));
-        deleteOldProfilePicture(user.getProfilePicture(), id);
+        this.deleteOldProfilePicture(user.getProfilePicture(), id);
         user.setProfilePicture(null);
         userRepository.save(user);
         log.debug("Successfully deleted profile image for user with ID: {}", id);
@@ -309,5 +309,30 @@ public class UserService {
         return Files.readAllBytes(profileImagePath);
     }
 
+    @Transactional
+    public void changeUserPassword(UserRequest userRequest) {
 
+        MonetaUser user = userRepository.findById(userRequest.getId()).orElseThrow(
+                () -> new IllegalArgumentException("Cannot find user with ID " + userRequest.getId()));
+        log.debug("Changing password for user with ID: {}", userRequest.getId());
+        this.validateUserPasswordChangeRequest(user, userRequest);
+        user.setPassword(encoder.encode(userRequest.getPassword()));
+        userRepository.save(user);
+        log.debug("User password has been changed and saved successfully.");
+    }
+
+    private void validateUserPasswordChangeRequest(MonetaUser user, UserRequest userRequest) {
+        log.debug("Validating user password change request.");
+        if (!Objects.equals(userRequest.getPassword(), userRequest.getConfirmPassword())) {
+            throw new IllegalArgumentException("Passwords are not matching.");
+        }
+        if (!encoder.matches(userRequest.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Incorrect old password.");
+        }
+
+        if (encoder.matches(userRequest.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password cannot be the same as old password.");
+        }
+        log.debug("User password change request validated.");
+    }
 }

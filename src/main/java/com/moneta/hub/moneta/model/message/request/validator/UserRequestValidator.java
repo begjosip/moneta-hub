@@ -19,4 +19,8 @@ public interface UserRequestValidator {
     interface NewPassword extends Default {
 
     }
+
+    interface PasswordChange extends Default {
+
+    }
 }
