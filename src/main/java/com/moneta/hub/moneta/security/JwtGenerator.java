@@ -24,16 +24,8 @@ public class JwtGenerator {
     /**
      * Key used for signing JWT token
      */
-    private static final String JWT_KEY =
-            "MSXUB340VHSM8W0B7VS2ELZPWL3842N7EC2GDZB0EP0UHD0949Q0Q" +
-            "YLP3CGJ6T6DUJ7XP3ZFS7NFSXAPKU4JDXZA3QR2NHURGR243SC25NE" +
-            "BY7X41S33PHPV7FL728W1ZBPZE14E82K35CKDYX5CFRS9QBMS0V8WCH" +
-            "1HMM18PSYFFQPX3LLWZGC8XC7V3D7GFQ6X5KPFU7HQAG67MPR1K20NSZ" +
-            "80ZTB9T1U580KN4WMHQXEGKTY79S54URWXS7PKJJ3F4K0XYV1D2HDKYZD" +
-            "RN1KZL4EEDJP9CLHVJNBNM8HQ0RTPUQ0FPLGJP2S0DXVK8UCFYK92DJLUJ" +
-            "Z1DQSBZNDT7AED9Z0LJLNAVW1T7S69KPRPWVJF3BBFLTAJ7XQ5E9J7GMS7E" +
-            "6B29G2CRB2PVVTLDVQG26UFCBZG3ZL069PZJW04CFQS59SD47WRBKRZVR76F" +
-            "9PHBPHGVSVPKPEG8F2Y8XGT75A2ARCCTNUQ4KWYDEYAFUSGMFTK8QX1KH1UY";
+    @Value("${jwt.key}")
+    private String jwtKey;
 
     @Value("${spring.application.name}")
     private String applicationName;
@@ -54,7 +46,7 @@ public class JwtGenerator {
     }
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(JWT_KEY.getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(jwtKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public String getUsernameFromToken(String token) {
