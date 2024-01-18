@@ -52,11 +52,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build and push
-        run: docker build --build-arg SPRING_DATASOURCE_URL=${{ secrets.MONETA_DB_URL }} \
-                          --build-arg SPRING_DATASOURCE_USERNAME=${{ secrets.MONETA_DB_USER }} \
-                          --build-arg SPRING_DATASOURCE_PASSWORD=${{ secrets.MONETA_DB_PASSWORD }} \
-                          --build-arg EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_API_KEY }} \
-                          --build-arg FINNHUB_IO_API_KEY=${{ secrets.FINNHUB_API_KEY }} \
-                          --build-arg POLYGON_API_KEY=${{ secrets.POLYGON_API_KEY }} \
-                          --build-arg SPRING_EMAIL_PASSWORD=${{ secrets.MONETA_EMAIL_AUTH }} \
-                          -t monetainvest/moneta-hub:latest .
+        run: docker build \
+          --build-arg SPRING_DATASOURCE_URL=${{ secrets.MONETA_DB_URL }} \
+          --build-arg SPRING_DATASOURCE_USERNAME=${{ secrets.MONETA_DB_USER }} \
+          --build-arg SPRING_DATASOURCE_PASSWORD=${{ secrets.MONETA_DB_PASSWORD }} \
+          --build-arg EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_API_KEY }} \
+          --build-arg FINNHUB_IO_API_KEY=${{ secrets.FINNHUB_API_KEY }} \
+          --build-arg POLYGON_API_KEY=${{ secrets.POLYGON_API_KEY }} \
+          --build-arg SPRING_EMAIL_PASSWORD=${{ secrets.MONETA_EMAIL_AUTH }} \
+          -t monetainvest/moneta-hub:latest .
