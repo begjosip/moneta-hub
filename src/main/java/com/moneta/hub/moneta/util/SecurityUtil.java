@@ -1,7 +1,9 @@
 package com.moneta.hub.moneta.util;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import lombok.experimental.UtilityClass;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -41,5 +43,13 @@ public class SecurityUtil {
 
     private static SecretKey generateKey() {
         return new SecretKeySpec(SECRET_KEY.getBytes(), KEY_ALGORITHM);
+    }
+
+    public static String getBearerTokenFromHttpRequest(HttpServletRequest httpServletRequest) {
+        String bearerToken = httpServletRequest.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        throw new IllegalArgumentException("Invalid JWT token.");
     }
 }

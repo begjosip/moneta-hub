@@ -40,7 +40,8 @@ public class ExchangeService {
                                        .concat(exchangeProperties.getExchangeApiKey())
                                        .concat(PAIR_URI_ARG)
                                        .concat("/" + request.getBaseCode())
-                                       .concat("/" + request.getTargetCode());
+                                       .concat("/" + request.getTargetCode())
+                                       .concat("/" + request.getAmount());
 
         log.debug("Fetching exchange rates data GET > > > {}", uri);
 

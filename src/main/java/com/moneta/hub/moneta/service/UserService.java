@@ -1,27 +1,38 @@
 package com.moneta.hub.moneta.service;
 
+import com.moneta.hub.moneta.config.ProfileImageDirectoryInitializerConfig;
 import com.moneta.hub.moneta.model.entity.MonetaUser;
 import com.moneta.hub.moneta.model.entity.Verification;
 import com.moneta.hub.moneta.model.enums.UserRole;
 import com.moneta.hub.moneta.model.enums.UserStatus;
 import com.moneta.hub.moneta.model.enums.VerificationStatus;
 import com.moneta.hub.moneta.model.message.request.UserRequest;
+import com.moneta.hub.moneta.model.message.response.UserResponse;
 import com.moneta.hub.moneta.repository.MonetaUserRepository;
 import com.moneta.hub.moneta.repository.RoleRepository;
 import com.moneta.hub.moneta.repository.VerificationRepository;
+import com.moneta.hub.moneta.security.JwtGenerator;
 import com.moneta.hub.moneta.util.SecurityUtil;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -42,9 +53,15 @@ public class UserService {
 
     private final EmailService emailService;
 
+    private final ProfileImageDirectoryInitializerConfig profileImageDirectoryConfig;
+
+    private final JwtGenerator jwtGenerator;
+
     private final PasswordEncoder encoder;
 
     private static final Long VERIFICATION_EXPIRATION_DAYS = 5L;
+    private static final List<String> SUPPORTED_IMAGE_MIME_TYPES = List.of(MediaType.IMAGE_PNG_VALUE,
+                                                                           MediaType.IMAGE_JPEG_VALUE);
 
     public MonetaUser findUserByUsername(String username) {
         log.debug("Find user by username {}", username);
@@ -141,7 +158,7 @@ public class UserService {
 
         MonetaUser user = findUserByUsername(SecurityUtil.encryptUsername(username));
         if (verificationRepository.findAllByUserIdAndStatus(user.getId(), VerificationStatus.PENDING)
-                                         .size() > 5L) {
+                                  .size() > 5L) {
             throw new IllegalArgumentException("You already have too many unused password requests. Contact our team.");
         }
         Verification verification = verificationRepository.save(Verification.builder()
@@ -153,6 +170,7 @@ public class UserService {
         emailService.sendPasswordChangeRequestEmail(verification);
     }
 
+    @Transactional
     public void changeForgottenPassword(UserRequest request) {
         log.debug("Change user forgotten password.");
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -171,4 +189,125 @@ public class UserService {
         userRepository.save(user);
         log.debug("Saved new password for user with ID:{}", user.getId());
     }
+
+    @Transactional
+    public UserResponse getUserDataWithToken(HttpServletRequest httpServletRequest)
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException,
+                   IOException {
+        log.debug("Extracting JWT token from HTTP servlet request.");
+        String jwtToken = SecurityUtil.getBearerTokenFromHttpRequest(httpServletRequest);
+        String username = jwtGenerator.getUsernameFromToken(jwtToken);
+        log.debug("Extracted encrypted username from token.");
+
+        MonetaUser user = userRepository.findByUsername(username).orElseThrow(
+                () -> new IllegalArgumentException("Cannot find user by username."));
+        UserResponse response = UserResponse.mapAuthenticatedUserEntity(user, jwtToken);
+        response.setUsername(SecurityUtil.decryptUsername(username));
+        response.setImageBase64(getProfileImageForUser(user.getId()));
+        log.debug("Successfully mapped user entity.");
+
+        return response;
+    }
+
+    @Transactional
+    public void deleteUserAccountWithId(Long id) throws IOException {
+        log.debug("Delete account for user with ID: {}", id);
+        deleteProfileImageForUserWithId(id);
+        MonetaUser user = userRepository.findById(id).orElseThrow(
+                () -> new IllegalArgumentException("Cannot find user with ID: " + id));
+        verificationRepository.deleteAllByUserId(id);
+        userRepository.delete(user);
+        log.debug("Deleted account with ID: {}", id);
+    }
+
+    @Transactional
+    public byte[] saveProfileImageForUserWithId(MultipartFile profileImage, Long id)
+            throws HttpMediaTypeNotSupportedException, IOException {
+        MonetaUser user = userRepository.findById(id).orElseThrow(
+                () -> new IllegalArgumentException("Cannot find user with ID: " + id));
+        log.debug("Saving profile image for user with ID: {}", id);
+        this.validateProfileImage(profileImage);
+        String imageName = this.generateUserProfileImagePath(profileImage, id);
+        Path profileImagePath = Path.of(profileImageDirectoryConfig.getProfileImageDirectory(), imageName);
+        if (user.getProfilePicture() != null) {
+            String oldProfileImagePath = user.getProfilePicture();
+            Files.copy(profileImage.getInputStream(), profileImagePath, StandardCopyOption.REPLACE_EXISTING);
+            log.debug("New profile image saved successfully for user with ID: {}.", id);
+            user.setProfilePicture(imageName);
+            userRepository.save(user);
+            this.deleteOldProfilePicture(oldProfileImagePath, id);
+            return Files.readAllBytes(profileImagePath);
+        }
+        Files.copy(profileImage.getInputStream(), profileImagePath, StandardCopyOption.REPLACE_EXISTING);
+        log.debug("Profile image saved successfully for user with ID: {}.", id);
+        user.setProfilePicture(imageName);
+        userRepository.save(user);
+        return Files.readAllBytes(profileImagePath);
+    }
+
+    private void deleteOldProfilePicture(String oldProfileImagePath, Long id) throws IOException {
+        Path oldProfilePicture = Path.of(profileImageDirectoryConfig.getProfileImageDirectory(), oldProfileImagePath);
+        if (Files.exists(oldProfilePicture)) {
+            Files.delete(oldProfilePicture);
+            log.debug("Successfully deleted old profile image for user with ID: {}.", id);
+        }
+    }
+
+    private void validateProfileImage(MultipartFile profileImage) {
+        log.debug("Validating profile image.");
+        if (profileImage.isEmpty()) {
+            throw new IllegalArgumentException("Profile Image is not updated.");
+        }
+        if (!SUPPORTED_IMAGE_MIME_TYPES.contains(profileImage.getContentType())) {
+            throw new IllegalArgumentException("Invalid image MIME type.");
+        }
+        if ((profileImage.getSize() / (1024.0 * 1024.0)) > 2.0) {
+            throw new IllegalArgumentException("Profile image needs to be less than 2 MB in size.");
+        }
+        log.debug("Image successfully validated.");
+    }
+
+    private String generateUserProfileImagePath(MultipartFile profileImage, Long id) throws HttpMediaTypeNotSupportedException {
+        log.debug("Generating profile image path name.");
+        String imageOriginalFileName = profileImage.getOriginalFilename();
+        if (imageOriginalFileName != null) {
+            return "PI" + id + "_" + UUID.randomUUID() + imageOriginalFileName.substring(imageOriginalFileName.lastIndexOf("."));
+        }
+        throw new HttpMediaTypeNotSupportedException("Invalid image extension.");
+    }
+
+    @Transactional
+    public void deleteProfileImageForUserWithId(Long id) throws IOException {
+        log.debug("Deleting profile image for user with ID: {}", id);
+        MonetaUser user = userRepository.findById(id).orElseThrow(
+                () -> new IllegalArgumentException("Cannot find user with ID " + id));
+        deleteOldProfilePicture(user.getProfilePicture(), id);
+        user.setProfilePicture(null);
+        userRepository.save(user);
+        log.debug("Successfully deleted profile image for user with ID: {}", id);
+    }
+
+    public void validateTokenAndUserId(String jwtToken, Long id) {
+        log.debug("Validating user JWT token and user ID.");
+        String username = jwtGenerator.getUsernameFromToken(jwtToken);
+        MonetaUser user = findUserByUsername(username);
+        if (user.getId().compareTo(id) != 0) {
+            throw new IllegalArgumentException("Invalid JWT token.");
+        }
+    }
+
+    public byte[] getProfileImageForUser(Long id) throws IOException {
+        log.debug("Fetching user profile image.");
+        MonetaUser user = userRepository.findById(id).orElseThrow(
+                () -> new IllegalArgumentException("Cannot find user with ID " + id));
+        if (user.getProfilePicture() == null) {
+            log.debug("User does not have profile image set up.");
+            return new byte[0];
+        }
+        Path profileImagePath = Path.of(profileImageDirectoryConfig.getProfileImageDirectory() + user.getProfilePicture());
+        log.debug("Returning profile image as byte array.");
+        return Files.readAllBytes(profileImagePath);
+    }
+
+
 }

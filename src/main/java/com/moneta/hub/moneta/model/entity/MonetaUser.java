@@ -25,7 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(name = "uc_moneta_user__username", columnNames = "username"))
+@Table(uniqueConstraints = {@UniqueConstraint(name = "uc_moneta_user__username", columnNames = "username"),
+                            @UniqueConstraint(name = "uc_moneta_user__profile_picture", columnNames = "profilePicture")})
 @Getter
 @Setter
 @Builder
@@ -52,6 +53,9 @@ public class MonetaUser extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status;
+
+    @Column(unique = true)
+    private String profilePicture;
 
     @ManyToMany(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     @JoinTable(

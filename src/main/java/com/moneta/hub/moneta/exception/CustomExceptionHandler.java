@@ -6,6 +6,7 @@ import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.MailException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -105,6 +106,17 @@ public class CustomExceptionHandler {
         return errors;
     }
 
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public Map<String, Object> httpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException ex) {
+        Map<String, Object> errors = new HashMap<>();
+        errors.put("timestamp", LocalDateTime.now());
+        errors.put("status", HttpStatus.INTERNAL_SERVER_ERROR);
+        errors.put("error", ex.getMessage());
+        return errors;
+    }
+
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
     public Map<String, Object> defaultExceptionHandler(
@@ -115,5 +127,4 @@ public class CustomExceptionHandler {
         errors.put("error", ex.getMessage());
         return errors;
     }
-
 }

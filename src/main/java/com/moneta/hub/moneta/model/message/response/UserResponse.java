@@ -18,9 +18,13 @@ public class UserResponse {
 
     private String username;
 
+    private String status;
+
     private String accessToken;
 
     private LocalDateTime createdAt;
+
+    private byte[] imageBase64;
 
     public static UserResponse mapAuthenticatedUserEntity(MonetaUser user, String accessToken) {
         return UserResponse.builder()
@@ -28,6 +32,7 @@ public class UserResponse {
                            .firstName(user.getFirstName())
                            .lastName(user.getLastName())
                            .accessToken(accessToken)
+                           .status(user.getStatus().getName())
                            .createdAt(user.getCreatedAt())
                            .build();
     }

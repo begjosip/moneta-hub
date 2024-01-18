@@ -14,4 +14,6 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
     Optional<Verification> findByTokenAndStatus(String token, VerificationStatus status);
 
     List<Verification> findAllByUserIdAndStatus(Long userId, VerificationStatus verificationStatus);
+
+    void deleteAllByUserId(Long userId);
 }

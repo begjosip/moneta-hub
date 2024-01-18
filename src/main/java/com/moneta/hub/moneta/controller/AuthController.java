@@ -27,6 +27,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -44,8 +45,8 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<Object> login(@Validated(UserRequestValidator.Login.class) @RequestBody UserRequest userRequest)
-            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    public ResponseEntity<UserResponse> login(@Validated(UserRequestValidator.Login.class) @RequestBody UserRequest userRequest)
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, IOException {
 
         log.info(" > > > POST /api/v1/auth/login");
 
@@ -55,10 +56,12 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         MonetaUser user = userService.findUserByUsername(SecurityUtil.encryptUsername(userRequest.getUsername()));
         String accessToken = jwtGenerator.generateToken(authentication, user);
+        UserResponse response = UserResponse.mapAuthenticatedUserEntity(user, accessToken);
+        response.setImageBase64(userService.getProfileImageForUser(user.getId()));
 
         log.info(" < < < POST /api/v1/auth/login");
 
-        return ResponseEntity.ok().body(UserResponse.mapAuthenticatedUserEntity(user, accessToken));
+        return ResponseEntity.ok().body(response);
     }
 
     @PostMapping("/register")
