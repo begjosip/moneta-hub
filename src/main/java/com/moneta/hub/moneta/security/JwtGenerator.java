@@ -17,9 +17,9 @@ import java.util.Date;
 public class JwtGenerator {
 
     /**
-     * Expiration time in milliseconds (5 minutes)
+     * Expiration time in milliseconds (15 minutes)
      */
-    private static final long JWT_EXPIRATION = 300000L;
+    private static final long JWT_EXPIRATION = 900000L;
 
     /**
      * Key used for signing JWT token

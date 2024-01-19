@@ -4,6 +4,7 @@ import com.moneta.hub.moneta.model.message.response.CompanyProfileResponse;
 import com.moneta.hub.moneta.model.message.response.MarketStatus;
 import com.moneta.hub.moneta.model.message.response.NewsResponse;
 import com.moneta.hub.moneta.model.message.response.QuoteResponse;
+import com.moneta.hub.moneta.model.message.response.SearchResponse;
 import com.moneta.hub.moneta.service.FinanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +62,17 @@ public class FinancialController {
         log.info(" < < < GET /api/v1/finance/blue/chips");
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/search/ticker/{ticker}")
+    public ResponseEntity<Object> symbolLookup(@PathVariable String ticker) {
+        log.info(" > > > GET /api/v1/finance/search/ticker/{}", ticker);
+
+        SearchResponse response = financeService.lookupForStockByTicker(ticker);
+
+        log.info(" < < < GET /api/v1/finance/search/ticker/{}", ticker);
+
+        return ResponseEntity.ok().body(response);
     }
 
 }

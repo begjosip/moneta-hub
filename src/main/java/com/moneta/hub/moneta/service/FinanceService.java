@@ -6,6 +6,7 @@ import com.moneta.hub.moneta.model.message.response.CompanyProfileResponse;
 import com.moneta.hub.moneta.model.message.response.MarketStatus;
 import com.moneta.hub.moneta.model.message.response.NewsResponse;
 import com.moneta.hub.moneta.model.message.response.QuoteResponse;
+import com.moneta.hub.moneta.model.message.response.SearchResponse;
 import com.moneta.hub.moneta.repository.BlueChipRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,9 @@ public class FinanceService {
     private static final String COMPANY_PROFILE_URI = "/stock/profile2?symbol=";
     private static final String QUOTE_URI = "/quote?symbol=";
     private static final String MARKET_STATUS_URI = "/stock/market-status?exchange=US";
+    private static final String SYMBOL_LOOKUP_URI = "/search?q=";
     private static final String FINNHUB_TOKEN_HEADER_KEY = "X-Finnhub-Token";
+    private static final String COMMON_STOCK_TYPE = "Common Stock";
 
     public List<NewsResponse> fetchStockMarketNews() {
 
@@ -150,5 +153,38 @@ public class FinanceService {
                                           "Error occurred while trying to fetch company data.")))
                         .bodyToMono(MarketStatus.class)
                         .block();
+    }
+
+    public SearchResponse lookupForStockByTicker(String ticker) {
+        String uri = financeProperties.getFinnhubUrl().concat(SYMBOL_LOOKUP_URI).concat(ticker);
+        log.debug("Fetching symbol lookup data GET > > > {}", uri);
+
+        WebClient webClient = WebClient.builder()
+                                       .clientConnector(new ReactorClientHttpConnector(HttpClient.create()
+                                                                                                 .responseTimeout(
+                                                                                                         Duration.ofSeconds(TIMEOUT))))
+                                       .build();
+
+        SearchResponse searchResponse = webClient.get()
+                                                 .uri(uri)
+                                                 .header(FINNHUB_TOKEN_HEADER_KEY, financeProperties.getFinnhubApiKey())
+                                                 .retrieve()
+                                                 .onStatus(status -> status.value() == HttpStatus.TOO_MANY_REQUESTS.value(),
+                                                           response -> Mono.error(new IllegalArgumentException(
+                                                                   "Too many API requests. Try again later of improve " +
+                                                                   "your subscription" +
+                                                                   " plan.")))
+                                                 .onStatus(status -> !status.is2xxSuccessful(),
+                                                           response -> Mono.error(new IllegalArgumentException(
+                                                                   "Error occurred while trying to fetch symbol lookup data.")))
+                                                 .bodyToMono(SearchResponse.class)
+                                                 .block();
+        if (searchResponse != null && searchResponse.getResult() != null) {
+            searchResponse.setResult(searchResponse.getResult()
+                                                   .stream()
+                                                   .filter(stockSearchResult -> stockSearchResult.getType().equals(COMMON_STOCK_TYPE))
+                                                   .toList());
+        }
+        return searchResponse;
     }
 }
