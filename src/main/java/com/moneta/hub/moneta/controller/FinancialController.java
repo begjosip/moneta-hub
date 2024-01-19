@@ -1,5 +1,6 @@
 package com.moneta.hub.moneta.controller;
 
+import com.moneta.hub.moneta.model.message.response.AggregatesResponse;
 import com.moneta.hub.moneta.model.message.response.CompanyProfileResponse;
 import com.moneta.hub.moneta.model.message.response.MarketStatus;
 import com.moneta.hub.moneta.model.message.response.NewsResponse;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -64,8 +66,8 @@ public class FinancialController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping(value = "/search/ticker/{ticker}")
-    public ResponseEntity<Object> symbolLookup(@PathVariable String ticker) {
+    @GetMapping("/search/ticker/{ticker}")
+    public ResponseEntity<SearchResponse> symbolLookup(@PathVariable String ticker) {
         log.info(" > > > GET /api/v1/finance/search/ticker/{}", ticker);
 
         SearchResponse response = financeService.lookupForStockByTicker(ticker);
@@ -75,4 +77,17 @@ public class FinancialController {
         return ResponseEntity.ok().body(response);
     }
 
+    @GetMapping("/stock/aggregates/{ticker}/range/{multiplier}/{timespan}/{from}/{to}")
+    public ResponseEntity<AggregatesResponse> getAggregatesForStockWithTicker(@PathVariable String ticker,
+                                                                              @PathVariable Long multiplier,
+                                                                              @PathVariable String timespan,
+                                                                              @PathVariable LocalDate from,
+                                                                              @PathVariable LocalDate to) {
+
+        log.info(" > > > GET /api/v1/finance/stock/aggregates/{}", ticker);
+        AggregatesResponse response = financeService.getAggregatesForTickerWithMultiplierInRange(ticker, multiplier, timespan, from, to);
+        log.info(" < < < GET /api/v1/finance/stock/aggregates/{}", ticker);
+
+        return ResponseEntity.ok().body(response);
+    }
 }
