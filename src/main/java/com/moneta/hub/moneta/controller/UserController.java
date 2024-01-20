@@ -43,6 +43,16 @@ public class UserController {
 
     private final UserService userService;
 
+    @GetMapping("/validate")
+    public ResponseEntity<Object> validateUser() {
+
+        log.info(" > > > GET /api/v1/user/validate");
+        log.info("User is validated with JWT token.");
+        log.info(" < < < GET /api/v1/user/validate");
+
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<UserResponse> getUser(@NonNull HttpServletRequest httpServletRequest)
