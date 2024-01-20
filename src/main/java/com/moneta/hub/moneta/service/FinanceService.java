@@ -41,6 +41,7 @@ public class FinanceService {
     private static final String MARKET_STATUS_URI = "/stock/market-status?exchange=US";
     private static final String SYMBOL_LOOKUP_URI = "/search?q=";
     private static final String POLYGON_AGGREGATES_URI = "/v2/aggs/ticker/{stocksTicker}/range/{multiplier}/{timespan}/{from}/{to}";
+    private static final String POLYGON_AGGREGATES_PROPERTIES = "?adjusted=true&sort=asc&limit=50000";
     private static final String FINNHUB_TOKEN_HEADER_KEY = "X-Finnhub-Token";
     private static final String POLYGON_AUTHORIZATION_HEADER_KEY = "Authorization";
     private static final String COMMON_STOCK_TYPE = "Common Stock";
@@ -74,8 +75,7 @@ public class FinanceService {
     public CompanyProfileResponse fetchCompanyProfile(String ticker) {
 
         String uri = financeProperties.getFinnhubUrl().concat(COMPANY_PROFILE_URI).concat(ticker);
-        log.info("Fetching company profile data GET > > > {}", uri);
-        log.info(uri);
+        log.debug("Fetching company profile data GET > > > {}", uri);
         WebClient webClient = WebClient.builder()
                                        .clientConnector(new ReactorClientHttpConnector(HttpClient.create()
                                                                                                  .responseTimeout(
@@ -211,14 +211,14 @@ public class FinanceService {
                                                                           LocalDate from,
                                                                           LocalDate to) {
 
-
         String uri = financeProperties.getPolygonUrl()
                                       .concat(POLYGON_AGGREGATES_URI)
                                       .replace("{stocksTicker}", ticker.toUpperCase())
                                       .replace("{multiplier}", multiplier.toString())
                                       .replace("{timespan}", timespan)
                                       .replace("{from}", from.toString())
-                                      .replace("{to}", to.toString());
+                                      .replace("{to}", to.toString())
+                                      .concat(POLYGON_AGGREGATES_PROPERTIES);
 
         log.debug("Fetching stock aggregates data from uri > > > GET {}", uri);
 
@@ -244,7 +244,7 @@ public class FinanceService {
                                                          .bodyToMono(AggregatesResponse.class)
                                                          .block();
         if (aggregatesResponse != null && (aggregatesResponse.getQueryCount() == 0)) {
-                throw new IllegalArgumentException("Invalid ticker name. Cannot get aggregates data.");
+            throw new IllegalArgumentException("Invalid ticker name. Cannot get aggregates data.");
         }
         return aggregatesResponse;
     }

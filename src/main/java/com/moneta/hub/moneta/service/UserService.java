@@ -2,6 +2,7 @@ package com.moneta.hub.moneta.service;
 
 import com.moneta.hub.moneta.config.ProfileImageDirectoryInitializerConfig;
 import com.moneta.hub.moneta.model.entity.MonetaUser;
+import com.moneta.hub.moneta.model.entity.UserStock;
 import com.moneta.hub.moneta.model.entity.Verification;
 import com.moneta.hub.moneta.model.enums.UserRole;
 import com.moneta.hub.moneta.model.enums.UserStatus;
@@ -10,6 +11,7 @@ import com.moneta.hub.moneta.model.message.request.UserRequest;
 import com.moneta.hub.moneta.model.message.response.UserResponse;
 import com.moneta.hub.moneta.repository.MonetaUserRepository;
 import com.moneta.hub.moneta.repository.RoleRepository;
+import com.moneta.hub.moneta.repository.UserStockRepository;
 import com.moneta.hub.moneta.repository.VerificationRepository;
 import com.moneta.hub.moneta.security.JwtGenerator;
 import com.moneta.hub.moneta.util.SecurityUtil;
@@ -38,6 +40,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -50,6 +53,8 @@ public class UserService {
     private final RoleRepository roleRepository;
 
     private final VerificationRepository verificationRepository;
+
+    private final UserStockRepository userStockRepository;
 
     private final EmailService emailService;
 
@@ -334,5 +339,32 @@ public class UserService {
             throw new IllegalArgumentException("New password cannot be the same as old password.");
         }
         log.debug("User password change request validated.");
+    }
+
+    public void addStockToUsersFavourites(String jwtToken, String ticker) {
+        log.debug("Adding stock {} to users favourites.", ticker);
+
+        MonetaUser user = findUserByUsername(jwtGenerator.getUsernameFromToken(jwtToken));
+        Optional<UserStock> stock = userStockRepository.findByTickerAndUserId(ticker.toUpperCase(), user.getId());
+        if (stock.isPresent()) {
+            throw new IllegalArgumentException("Stock is already in users favourites.");
+        }
+
+        UserStock userStock = UserStock.builder()
+                                       .ticker(ticker.toUpperCase())
+                                       .user(user)
+                                       .build();
+        userStockRepository.save(userStock);
+        log.debug("User stock saved successfully.");
+    }
+
+    public void deleteStockFromUserFavourites(String jwtToken, String ticker) {
+        log.debug("Removing stock from user favourites.");
+
+        MonetaUser user = findUserByUsername(jwtGenerator.getUsernameFromToken(jwtToken));
+        UserStock stock = userStockRepository.findByTickerAndUserId(ticker.toUpperCase(), user.getId()).orElseThrow(
+                () -> new IllegalArgumentException("Cannot find " + ticker + "for user."));
+        userStockRepository.delete(stock);
+        log.debug("Removed stock from users favourites.");
     }
 }
