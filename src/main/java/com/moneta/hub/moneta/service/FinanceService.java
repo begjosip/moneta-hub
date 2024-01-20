@@ -246,6 +246,39 @@ public class FinanceService {
         if (aggregatesResponse != null && (aggregatesResponse.getQueryCount() == 0)) {
             throw new IllegalArgumentException("Invalid ticker name. Cannot get aggregates data.");
         }
+        if (aggregatesResponse != null && aggregatesResponse.getNextUrl() != null) {
+            String nextRequestUrl = aggregatesResponse.getNextUrl();
+            while (!nextRequestUrl.isBlank()) {
+                log.debug("Fetching next aggregate data from {}", nextRequestUrl);
+                AggregatesResponse nextResponse = webClient.get()
+                                                           .uri(nextRequestUrl)
+                                                           .header(POLYGON_AUTHORIZATION_HEADER_KEY,
+                                                                   "Bearer " + financeProperties.getPolygonApiKey())
+                                                           .retrieve()
+                                                           .onStatus(status -> status.value() == HttpStatus.TOO_MANY_REQUESTS.value(),
+                                                                     response -> Mono.error(new IllegalArgumentException(
+                                                                             "Too many API requests. Try again later of improve " +
+                                                                             "your subscription" +
+                                                                             " plan.")))
+                                                           .onStatus(status -> !status.is2xxSuccessful(),
+                                                                     response -> Mono.error(new IllegalArgumentException(
+                                                                             "Error occurred while trying to fetch symbol aggregates data" +
+                                                                             ".")))
+                                                           .bodyToMono(AggregatesResponse.class)
+                                                           .block();
+                if (nextResponse != null && nextResponse.getResults() != null) {
+                    aggregatesResponse.addQuoteResponse(nextResponse.getResults());
+                    if (nextResponse.getNextUrl() == null) {
+                        nextRequestUrl = "";
+                    } else {
+                        nextRequestUrl = nextResponse.getNextUrl();
+                    }
+                } else {
+                    nextRequestUrl = "";
+                }
+            }
+        }
+
         return aggregatesResponse;
     }
 }

@@ -1,5 +1,6 @@
 package com.moneta.hub.moneta.model.message.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
@@ -15,5 +16,12 @@ public class AggregatesResponse {
 
     private String status;
 
+    @JsonProperty("next_url")
+    private String nextUrl;
+
     private List<QuoteResponse> results;
+
+    public void addQuoteResponse(List<QuoteResponse> quoteResponses) {
+        results.addAll(quoteResponses);
+    }
 }
