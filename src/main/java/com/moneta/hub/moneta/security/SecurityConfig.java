@@ -36,7 +36,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
                    .authorizeHttpRequests(requestMatcherRegistry -> requestMatcherRegistry
-                           .requestMatchers("/v1/auth/**").permitAll())
+                           .requestMatchers("/v1/auth/**", "/v1/health").permitAll())
                    .authorizeHttpRequests(
                            requestMatcherRegistry -> requestMatcherRegistry.requestMatchers(HttpMethod.GET, "/v1/faq")
                                                                            .permitAll())
