@@ -8,6 +8,7 @@ import com.moneta.hub.moneta.model.enums.UserRole;
 import com.moneta.hub.moneta.model.enums.UserStatus;
 import com.moneta.hub.moneta.model.enums.VerificationStatus;
 import com.moneta.hub.moneta.model.message.request.UserRequest;
+import com.moneta.hub.moneta.model.message.response.QuoteResponse;
 import com.moneta.hub.moneta.model.message.response.UserResponse;
 import com.moneta.hub.moneta.repository.MonetaUserRepository;
 import com.moneta.hub.moneta.repository.RoleRepository;
@@ -38,6 +39,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -57,6 +59,8 @@ public class UserService {
     private final UserStockRepository userStockRepository;
 
     private final EmailService emailService;
+
+    private final FinanceService financeService;
 
     private final ProfileImageDirectoryInitializerConfig profileImageDirectoryConfig;
 
@@ -366,5 +370,17 @@ public class UserService {
                 () -> new IllegalArgumentException("Cannot find " + ticker + "for user."));
         userStockRepository.delete(stock);
         log.debug("Removed stock from users favourites.");
+    }
+
+    public List<QuoteResponse> getAllUserFavouriteStocks(String jwtToken) {
+        log.debug("Fetching all user stocks.");
+        MonetaUser user = findUserByUsername(jwtGenerator.getUsernameFromToken(jwtToken));
+
+        List<UserStock> userStocks = userStockRepository.findAllByUserId(user.getId());
+        if (userStocks.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return financeService.fetchQuotesForUserStocks(userStocks);
     }
 }

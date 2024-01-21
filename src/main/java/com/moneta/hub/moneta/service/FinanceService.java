@@ -2,6 +2,7 @@ package com.moneta.hub.moneta.service;
 
 import com.moneta.hub.moneta.config.FinanceProperties;
 import com.moneta.hub.moneta.model.entity.BlueChip;
+import com.moneta.hub.moneta.model.entity.UserStock;
 import com.moneta.hub.moneta.model.message.response.AggregatesResponse;
 import com.moneta.hub.moneta.model.message.response.CompanyProfileResponse;
 import com.moneta.hub.moneta.model.message.response.MarketStatus;
@@ -20,6 +21,7 @@ import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -280,5 +282,39 @@ public class FinanceService {
         }
 
         return aggregatesResponse;
+    }
+
+    public List<QuoteResponse> fetchQuotesForUserStocks(List<UserStock> userStocks) {
+        String uri = financeProperties.getFinnhubUrl().concat(QUOTE_URI);
+        log.debug("Fetching user stocks quote. {}", uri);
+        WebClient webClient = WebClient.builder()
+                                       .clientConnector(new ReactorClientHttpConnector(HttpClient.create()
+                                                                                                 .responseTimeout(
+                                                                                                         Duration.ofSeconds(TIMEOUT))))
+                                       .build();
+        List<QuoteResponse> quoteResponses = new ArrayList<>();
+        userStocks.forEach(userStock -> {
+            QuoteResponse quoteResponse = webClient.get()
+                                                   .uri(uri.concat(userStock.getTicker()))
+                                                   .header(FINNHUB_TOKEN_HEADER_KEY, financeProperties.getFinnhubApiKey())
+                                                   .retrieve()
+                                                   .onStatus(status -> status.value() == HttpStatus.TOO_MANY_REQUESTS.value(),
+                                                             response -> Mono.error(new IllegalArgumentException(
+                                                                     "Too many API requests. Try again later of improve " +
+                                                                     "your subscription" +
+                                                                     " plan.")))
+                                                   .onStatus(status -> !status.is2xxSuccessful(),
+                                                             response -> Mono.error(new IllegalArgumentException(
+                                                                     "Error occurred while trying to fetch company quote data.")))
+                                                   .bodyToMono(QuoteResponse.class)
+                                                   .block();
+            if (quoteResponse != null) {
+                quoteResponse.setTicker(userStock.getTicker());
+                quoteResponse.setTimestamp(userStock.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            }
+            quoteResponses.add(quoteResponse);
+        });
+        log.debug("Fetching company profile quotes data success GET > > > {}", uri);
+        return quoteResponses;
     }
 }

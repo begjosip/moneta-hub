@@ -1,11 +1,13 @@
 package com.moneta.hub.moneta.model.message.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 import lombok.Data;
 import lombok.Setter;
 
 @Data
 @Setter
+@Builder
 public class QuoteResponse {
 
     private String companyName;
@@ -13,7 +15,7 @@ public class QuoteResponse {
     private String ticker;
 
     @JsonProperty("c")
-    private Double closingPrice;
+    private Double currentPrice;
 
     @JsonProperty("h")
     private Double highPrice;
