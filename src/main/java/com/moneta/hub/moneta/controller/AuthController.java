@@ -46,19 +46,18 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@Validated(UserRequestValidator.Login.class) @RequestBody UserRequest userRequest)
-            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, IOException {
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
 
         log.info(" > > > POST /api/v1/auth/login");
 
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(SecurityUtil.encryptUsername(userRequest.getUsername()),
+                new UsernamePasswordAuthenticationToken(SecurityUtil.encryptUsername(userRequest.getUsername().toLowerCase()),
                                                         userRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        MonetaUser user = userService.findUserByUsername(SecurityUtil.encryptUsername(userRequest.getUsername()));
+        MonetaUser user = userService.findUserByUsername(SecurityUtil.encryptUsername(userRequest.getUsername().toLowerCase()));
         String accessToken = jwtGenerator.generateToken(authentication, user);
         UserResponse response = UserResponse.mapAuthenticatedUserEntity(user, accessToken);
         response.setImageBase64(userService.getProfileImageForUser(user.getId()));
-
         log.info(" < < < POST /api/v1/auth/login");
 
         return ResponseEntity.ok().body(response);
@@ -94,9 +93,10 @@ public class AuthController {
 
     @PostMapping("/reset/request")
     public ResponseEntity<Object> requestPasswordReset(@Validated(UserRequestValidator.PasswordReset.class) @RequestBody UserRequest request)
-            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, MessagingException, UnsupportedEncodingException {
+            throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException,
+                   MessagingException, UnsupportedEncodingException {
         log.info(" > > > POST /api/v1/auth/reset/request");
-        userService.requestPasswordResetForUser(request.getUsername());
+        userService.requestPasswordResetForUser(request.getUsername().toLowerCase());
         log.info(" < < < POST /api/v1/auth/reset/request");
         return ResponseEntity.ok().build();
     }

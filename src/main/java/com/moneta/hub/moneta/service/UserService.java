@@ -87,7 +87,7 @@ public class UserService {
         MonetaUser user = MonetaUser.builder()
                                     .firstName(userRequest.getFirstName())
                                     .lastName(userRequest.getLastName())
-                                    .username(SecurityUtil.encryptUsername(userRequest.getUsername()))
+                                    .username(SecurityUtil.encryptUsername(userRequest.getUsername().toLowerCase()))
                                     .password(encoder.encode(userRequest.getPassword()))
                                     .status(UserStatus.PENDING_CONFIRMATION)
                                     .roles(roleRepository.findAllByNameIn(List.of(UserRole.USER)))
@@ -112,7 +112,7 @@ public class UserService {
     private void validateUserRegistrationRequest(UserRequest userRequest)
             throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         log.debug("Validating user request.");
-        if (userRepository.findByUsername(SecurityUtil.encryptUsername(userRequest.getUsername())).isPresent()) {
+        if (userRepository.findByUsername(SecurityUtil.encryptUsername(userRequest.getUsername().toLowerCase())).isPresent()) {
             throw new IllegalArgumentException("User with given username already exists.");
         }
         if (!Objects.equals(userRequest.getPassword(), userRequest.getConfirmPassword())) {
@@ -305,7 +305,7 @@ public class UserService {
         }
     }
 
-    public byte[] getProfileImageForUser(Long id) throws IOException {
+    public byte[] getProfileImageForUser(Long id) {
         log.debug("Fetching user profile image.");
         MonetaUser user = userRepository.findById(id).orElseThrow(
                 () -> new IllegalArgumentException("Cannot find user with ID " + id));
@@ -313,9 +313,13 @@ public class UserService {
             log.debug("User does not have profile image set up.");
             return new byte[0];
         }
-        Path profileImagePath = Path.of(profileImageDirectoryConfig.getProfileImageDirectory() + user.getProfilePicture());
-        log.debug("Returning profile image as byte array.");
-        return Files.readAllBytes(profileImagePath);
+        try {
+            Path profileImagePath = Path.of(profileImageDirectoryConfig.getProfileImageDirectory() + user.getProfilePicture());
+            log.debug("Returning profile image as byte array.");
+            return Files.readAllBytes(profileImagePath);
+        } catch (Exception ex) {
+            return new byte[0];
+        }
     }
 
     @Transactional
