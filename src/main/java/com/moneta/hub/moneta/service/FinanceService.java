@@ -246,7 +246,8 @@ public class FinanceService {
                                                          .bodyToMono(AggregatesResponse.class)
                                                          .block();
         if (aggregatesResponse != null && (aggregatesResponse.getQueryCount() == 0)) {
-            throw new IllegalArgumentException("Invalid ticker name. Cannot get aggregates data.");
+            throw new IllegalArgumentException(
+                    "Cannot get aggregates data. Last two days were non working days on market or ticker name is invalid.");
         }
         if (aggregatesResponse != null && aggregatesResponse.getNextUrl() != null) {
             String nextRequestUrl = aggregatesResponse.getNextUrl();
